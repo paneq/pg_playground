@@ -1,0 +1,3 @@
+CREATE EXTENSION pg_cron;
+CREATE EXTENSION pg_incremental CASCADE;
+GRANT USAGE ON SCHEMA cron TO postgres;
