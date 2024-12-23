@@ -1,7 +1,8 @@
 require 'active_record'
 require 'logger'
+require 'rails_event_store_active_record'
+require 'rails_event_store/all'
 
-# Database connection configuration
 ActiveRecord::Base.establish_connection(
   adapter: 'postgresql',
   host: 'localhost',
@@ -13,51 +14,42 @@ ActiveRecord::Base.establish_connection(
 
 ActiveRecord::Base.logger = Logger.new(STDOUT)
 
-# Schema management: Define and create the users table
-class CreateUsersTable < ActiveRecord::Migration[7.0]
+class CreateRESTable < ActiveRecord::Migration[7.0]
   def up
-    create_table :users do |t|
-      t.string :name, null: false
-      t.string :email, null: false
-      t.timestamps
+    drop_table :event_store_events, if_exists: true
+    drop_table :event_store_events_in_streams, if_exists: true
+
+    create_table "event_store_events", id: :serial, force: :cascade do |t|
+      t.uuid "event_id", null: false
+      t.string "event_type", null: false
+      t.jsonb "metadata"
+      t.jsonb "data", null: false
+      t.datetime "created_at", precision: nil, null: false
+      t.datetime "valid_at", precision: nil
+      t.index ["created_at"], name: "index_event_store_events_on_created_at"
+      t.index ["event_id"], name: "index_event_store_events_on_event_id", unique: true
+      t.index ["event_type"], name: "index_event_store_events_on_event_type"
+      t.index ["valid_at"], name: "index_event_store_events_on_valid_at"
     end
 
-    add_index :users, :email, unique: true
+    create_table "event_store_events_in_streams", id: :serial, force: :cascade do |t|
+      t.string "stream", null: false
+      t.integer "position"
+      t.uuid "event_id", null: false
+      t.datetime "created_at", precision: nil, null: false
+      t.index ["created_at"], name: "index_event_store_events_in_streams_on_created_at"
+      t.index ["event_id"], name: "index_event_store_events_in_streams_on_event_id"
+      t.index ["stream", "event_id"], name: "index_event_store_events_in_streams_on_stream_and_event_id", unique: true
+      t.index ["stream", "position"], name: "index_event_store_events_in_streams_on_stream_and_position", unique: true
+    end
   end
-
-  def down
-    drop_table :users
-  end
 end
 
-# Run the migration if the table doesn't exist
-begin
-  unless ActiveRecord::Base.connection.table_exists?(:users)
-    CreateUsersTable.new.up
-  end
-rescue => e
-  puts "Migration error: #{e.message}"
+CreateRESTable.new.up
+
+event_store = RailsEventStore::JSONClient.new
+
+class UserCreated < RailsEventStore::Event
 end
 
-# Define the model
-class User < ActiveRecord::Base
-  validates :name, presence: true
-  validates :email, presence: true, uniqueness: true
-end
-
-# Example usage
-begin
-  # Create a new user
-  user = User.create!(
-    name: 'John Doe',
-    email: 'john@example.com'
-  )
-  puts "Created user: #{user.inspect}"
-
-  # Find a user
-  found_user = User.find_by(email: 'john@example.com')
-  puts "Found user: #{found_user.inspect}"
-
-rescue ActiveRecord::Error => e
-  puts "Database error: #{e.message}"
-end
+event_store.publish(UserCreated.new(data: { name: 'John Doe' }))
