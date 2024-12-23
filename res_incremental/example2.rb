@@ -67,8 +67,8 @@ class UserSourcesByMinuteReadModel < ActiveRecord::Migration[8.0]
           insert into registrations (minute, source, total)
           select
             date_trunc('minute', created_at),
-            (payload->>'source')::string 
-            count(distinct (payload->>'user_id')::integer)
+            (data->>'source')::text,
+            count(distinct (data->>'user_id')::integer)
           from event_store_events
           where
             id between $1 and $2
@@ -86,9 +86,13 @@ end
 
 CreateRESTable.new.up
 CreateUserRegistrations.new.up
-# UserSourcesByMinuteReadModel.new.up
+UserSourcesByMinuteReadModel.new.up
 
 event_store = RailsEventStore::JSONClient.new
+
+class RegistrationByMinute < ActiveRecord::Base
+  self.table_name = 'registrations'
+end
 
 class UserCreated < RailsEventStore::Event
 end
@@ -96,5 +100,12 @@ end
 event_store.publish(UserCreated.new(data: {
   user_id: 1,
   name: 'John Doe',
-  source: 'linkedin'})
-)
+  source: 'linkedin'
+}))
+
+loop do
+  sleep(10)
+  RegistrationByMinute.all.each do |registration|
+    puts "Minute: #{registration.minute}, Source: #{registration.source}, Total: #{registration.total}"
+  end
+end
