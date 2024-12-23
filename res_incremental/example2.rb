@@ -45,11 +45,56 @@ class CreateRESTable < ActiveRecord::Migration[7.0]
   end
 end
 
+class CreateUserRegistrations < ActiveRecord::Migration[8.0]
+  def up
+    drop_table :registrations, if_exists: true
+    execute(<<-SQL)
+      CREATE TABLE registrations (
+        minute TIMESTAMP(0) NOT NULL,
+        source VARCHAR NOT NULL,
+        total INTEGER NOT NULL DEFAULT 0,
+        PRIMARY KEY (minute, source)
+      );
+    SQL
+  end
+end
+
+class UserSourcesByMinuteReadModel < ActiveRecord::Migration[8.0]
+  def up
+    sql = <<-SQL
+      select incremental.create_sequence_pipeline('registrations-to-read-model', 'event_store_events',
+        $$
+          insert into registrations (minute, source, total)
+          select
+            date_trunc('minute', created_at),
+            (payload->>'source')::string 
+            count(distinct (payload->>'user_id')::integer)
+          from event_store_events
+          where
+            id between $1 and $2
+          and
+            event_type = 'UserCreated'
+          group by 1, 2
+          on conflict (minute, source) do
+            update set total = registrations.total + excluded.total;
+        $$
+      );
+    SQL
+    execute(sql)
+  end
+end
+
 CreateRESTable.new.up
+CreateUserRegistrations.new.up
+# UserSourcesByMinuteReadModel.new.up
 
 event_store = RailsEventStore::JSONClient.new
 
 class UserCreated < RailsEventStore::Event
 end
 
-event_store.publish(UserCreated.new(data: { name: 'John Doe' }))
+event_store.publish(UserCreated.new(data: {
+  user_id: 1,
+  name: 'John Doe',
+  source: 'linkedin'})
+)
