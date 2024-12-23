@@ -32,3 +32,42 @@ cd .. && docker compose up --build
 ```
 bundle exec ruby res_pg_incremental.rb
 ```
+
+# Example output
+
+```
+creating: 7830
+creating: 871
+creating: 7840
+creating: 7850
+creating: 7860
+creating: 7870
+creating: 7880
+creating: 7890
+creating: 7900
+creating: 7910
+Stopping writers
+creating: 7920
+creating: 881
+Minute: 2024-12-23 13:18:00 UTC, Source: bsky, Total: 3
+Minute: 2024-12-23 13:18:00 UTC, Source: facebook, Total: 41
+Minute: 2024-12-23 13:18:00 UTC, Source: linkedin, Total: 365
+++++
+Total in read model: 409, Total in event store: 884
+---- to stop workers run: kill -HUP 3153
+creating: 52
+Minute: 2024-12-23 13:18:00 UTC, Source: bsky, Total: 3
+Minute: 2024-12-23 13:18:00 UTC, Source: facebook, Total: 41
+Minute: 2024-12-23 13:18:00 UTC, Source: linkedin, Total: 365
+++++
+Total in read model: 409, Total in event store: 885
+---- to stop workers run: kill -HUP 3153
+Minute: 2024-12-23 13:19:00 UTC, Source: bsky, Total: 2
+Minute: 2024-12-23 13:19:00 UTC, Source: facebook, Total: 47
+Minute: 2024-12-23 13:19:00 UTC, Source: linkedin, Total: 427
+Minute: 2024-12-23 13:18:00 UTC, Source: bsky, Total: 3
+Minute: 2024-12-23 13:18:00 UTC, Source: facebook, Total: 41
+Minute: 2024-12-23 13:18:00 UTC, Source: linkedin, Total: 365
+++++
+Total in read model: 885, Total in event store: 885
+```
