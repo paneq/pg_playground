@@ -4,16 +4,10 @@ Docker configuration for safely playing with various PG extensions such as:
 * [pg_cron](https://github.com/citusdata/pg_cron)
 * [pg_incremental](https://github.com/crunchydata/pg_incremental)
 
-# Usage
+# Examples
 
-```
-docker compose up --build
-docker exec -it pg_playground-postgres-1 psql -U postgres
-\c postgres
-```
-
-And then you can execute i.e. the [example1.sql](https://github.com/paneq/pg_playground/blob/main/example1.sql)
-statements inside postgresql console.
+* [Rails Event Store + pg_incremental](https://github.com/paneq/pg_playground/tree/main/res_incremental)
+* [SQL example from pg_incremental announcement](https://github.com/paneq/pg_playground/blob/main/example1.sql)
 
 # Credits
 

@@ -1,5 +1,13 @@
 /* source: https://www.crunchydata.com/blog/pg_incremental-incremental-data-processing-in-postgres */
 
+/*
+Run:
+* docker compose up --build
+* docker exec -it pg_playground-postgres-1 psql -U postgres
+* \c postgres
+And then execute the script below:
+*/
+
 /* define the raw data and summary table */
 create table events (event_id bigserial, event_time timestamptz, user_id bigint, response_time double precision);
 create table view_counts (day timestamptz, user_id bigint, count bigint, primary key (day, user_id));

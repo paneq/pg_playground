@@ -24,7 +24,7 @@ how pg_incremental processes them safely:
 
 ```
 bundle install
-cd .. && docker compose up
+cd .. && docker compose up --build
 ```
 
 # Running the example
