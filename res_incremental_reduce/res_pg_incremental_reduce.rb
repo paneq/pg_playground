@@ -92,6 +92,7 @@ class ProcessUserEvents < ActiveRecord::Migration[8.0]
           FROM event_store_events e
           WHERE id BETWEEN $1 AND $2
           AND event_type IN ('UserRegistered', 'UserUnregistered')
+          ORDER BY id
         $$
       );
     SQL
