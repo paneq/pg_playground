@@ -12,7 +12,7 @@ ActiveRecord::Base.establish_connection(
   port: 5432
 )
 
-ActiveRecord::Base.logger = Logger.new(STDOUT)
+# ActiveRecord::Base.logger = Logger.new(STDOUT)
 
 class CreateRESTable < ActiveRecord::Migration[7.0]
   def up
@@ -61,6 +61,12 @@ end
 
 class UserSourcesByMinuteReadModel < ActiveRecord::Migration[8.0]
   def up
+    begin
+      # TODO: Fix me
+      execute("select incremental.drop_pipeline('registrations-to-read-model');")
+    rescue
+      puts "rescued"
+    end
     sql = <<-SQL
       select incremental.create_sequence_pipeline('registrations-to-read-model', 'event_store_events',
         $$
@@ -93,19 +99,49 @@ event_store = RailsEventStore::JSONClient.new
 class RegistrationByMinute < ActiveRecord::Base
   self.table_name = 'registrations'
 end
+class DbEvent < ActiveRecord::Base
+  self.table_name = 'event_store_events'
+end
 
 class UserCreated < RailsEventStore::Event
 end
 
-event_store.publish(UserCreated.new(data: {
-  user_id: 1,
-  name: 'John Doe',
-  source: 'linkedin'
-}))
+
+sources = ['linkedin', 'facebook', 'bsky']
+sleeps = [0.1, 1, 20]
+stop_writing = false
+Signal.trap("HUP") do
+  puts "Stopping writers"
+  stop_writing = true
+end
+
+writers = 3.times do |writer_id|
+  Thread.new do
+    (1..).each do |i|
+      break if stop_writing
+      ActiveRecord::Base.transaction do
+        event_store.publish(UserCreated.new(data: {
+          user_id: user_id = i*10 + writer_id,
+          name: "User #{user_id}",
+          source: sources[writer_id]
+        }))
+        sleep(sleeps[writer_id])
+        puts "creating: #{user_id}"
+      end
+    end
+  end
+end
 
 loop do
   sleep(10)
-  RegistrationByMinute.all.each do |registration|
-    puts "Minute: #{registration.minute}, Source: #{registration.source}, Total: #{registration.total}"
+  ActiveRecord::Base.transaction do
+    RegistrationByMinute.order('minute DESC, source ASC').all.each do |registration|
+      puts "Minute: #{registration.minute}, Source: #{registration.source}, Total: #{registration.total}"
+    end
+    puts "++++"
+    regs_total = RegistrationByMinute.all.map(&:total).sum
+    res_totals = DbEvent.count
+    puts "Total in read model: #{regs_total}, Total in event store: #{res_totals}"
+    puts "---- to stop workers run: kill -HUP #{Process.pid}"
   end
 end
