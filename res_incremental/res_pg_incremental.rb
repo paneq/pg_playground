@@ -79,7 +79,7 @@ class UserSourcesByMinuteReadModel < ActiveRecord::Migration[8.0]
           where
             id between $1 and $2
           and
-            event_type = 'UserCreated'
+            event_type = 'UserRegistered'
           group by 1, 2
           on conflict (minute, source) do
             update set total = registrations.total + excluded.total;
@@ -103,7 +103,7 @@ class DbEvent < ActiveRecord::Base
   self.table_name = 'event_store_events'
 end
 
-class UserCreated < RailsEventStore::Event
+class UserRegistered < RailsEventStore::Event
 end
 
 
@@ -120,7 +120,7 @@ writers = 3.times do |writer_id|
     (1..).each do |i|
       break if stop_writing
       ActiveRecord::Base.transaction do
-        event_store.publish(UserCreated.new(data: {
+        event_store.publish(UserRegistered.new(data: {
           user_id: user_id = i*10 + writer_id,
           name: "User #{user_id}",
           source: sources[writer_id]
@@ -142,6 +142,6 @@ loop do
     regs_total = RegistrationByMinute.all.map(&:total).sum
     res_totals = DbEvent.count
     puts "Total in read model: #{regs_total}, Total in event store: #{res_totals}"
-    puts "---- to stop workers run: kill -HUP #{Process.pid}"
+    puts "---- to stop producers run: kill -HUP #{Process.pid}"
   end
 end
