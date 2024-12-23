@@ -16,6 +16,7 @@ ActiveRecord::Base.establish_connection(
 
 class CreateRESTable < ActiveRecord::Migration[7.0]
   def up
+    execute('DROP FUNCTION IF EXISTS process_event;')
     drop_table :event_store_events, if_exists: true
     drop_table :event_store_events_in_streams, if_exists: true
 
@@ -54,6 +55,28 @@ class CreateUsers < ActiveRecord::Migration[8.0]
   end
 end
 
+class CreateFunction < ActiveRecord::Migration[8.0]
+  def up
+    execute(<<-SQL)
+      CREATE OR REPLACE FUNCTION process_event(e event_store_events)
+      RETURNS void AS $$
+      DECLARE
+         user_id integer;
+      BEGIN
+         user_id := (e.data->>'user_id')::integer;
+         IF e.event_type = 'UserRegistered' THEN
+             INSERT INTO users (id, status) VALUES (user_id, 'registered');
+         ELSIF e.event_type = 'UserUnregistered' THEN
+             UPDATE users SET status = 'regequit' WHERE id = user_id;
+         ELSE
+             RAISE NOTICE 'Unexpected event type: %', e.event_type;
+         END IF;
+      END;
+      $$ LANGUAGE plpgsql;
+   SQL
+  end
+end
+
 class ProcessUserEvents < ActiveRecord::Migration[8.0]
   def up
     begin
@@ -65,25 +88,10 @@ class ProcessUserEvents < ActiveRecord::Migration[8.0]
     sql = <<-SQL
       select incremental.create_sequence_pipeline('reduce-user-events', 'event_store_events',
         $$
-          DECLARE user_id integer;
-          BEGIN
-          FOR e IN SELECT * FROM event_store_events
-          WHERE 
-            id BETWEEN $1 AND $2
-          AND
-            event_type IN ('UserRegistered', 'UserUnregistered')
-          LOOP
-            user_id := (e.payload->>'user_id')::integer;
-            IF e.event_type = 'UserRegistered' THEN
-              INSERT INTO users (id, status) VALUES ((e.payload->>'user_id')::integer, 'registered');
-            ELSIF e.event_type = 'UserUnregistered' THEN
-              UPDATE users SET status = 'regequit' 
-              WHERE id = (e.payload->>'user_id')::integer;
-            ELSE
-              RAISE NOTICE 'Unexpected event type: %', e.event_type;  
-            END IF;
-          END LOOP;
-          END;
+          SELECT process_event(e.*)
+          FROM event_store_events e
+          WHERE id BETWEEN $1 AND $2
+          AND event_type IN ('UserRegistered', 'UserUnregistered')
         $$
       );
     SQL
@@ -93,6 +101,7 @@ end
 
 CreateRESTable.new.up
 CreateUsers.new.up
+CreateFunction.new.up
 ProcessUserEvents.new.up
 
 event_store = RailsEventStore::JSONClient.new
@@ -129,6 +138,7 @@ Thread.new do
         }))
       end
     end
+    sleep(0.5)
   end
 end
 
