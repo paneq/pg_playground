@@ -1,2 +1,3 @@
 .idea/
-res_incremental/.bundle
+res_incremental_analytics/.bundle
+res_incremental_reduce/.bundle

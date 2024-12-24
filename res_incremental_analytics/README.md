@@ -1,10 +1,10 @@
 # About this example
 
-This [example](https://github.com/paneq/pg_playground/blob/main/res_incremental/res_pg_incremental.rb) 
+This [example](https://github.com/paneq/pg_playground/blob/main/res_incremental_analytics/res_pg_incremental.rb) 
 demonstrates how [pg_incremental](https://github.com/CrunchyData/pg_incremental) extension can
 be used for processing domain events' data
 coming from [Rails Event Store](https://railseventstore.org/)
-to build materialized [read models](https://event-driven.io/en/projections_and_read_models_in_event_driven_architecture/).
+to build materialized analytical time-series data.
 
 The script publishes `UserRegistered` events and then pg_incremental processes 
 them every minute to build a `registrations` read model which shows how many users

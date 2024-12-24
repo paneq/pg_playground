@@ -6,7 +6,8 @@ Docker configuration for safely playing with various PG extensions such as:
 
 # Examples
 
-* [Rails Event Store + pg_incremental](https://github.com/paneq/pg_playground/tree/main/res_incremental)
+* [Rails Event Store + pg_incremental = analytics](https://github.com/paneq/pg_playground/tree/main/res_incremental_analytics)
+* [Rails Event Store + pg_incremental = projection](https://github.com/paneq/pg_playground/tree/main/res_incremental_reduce)
 * [SQL example from pg_incremental announcement](https://github.com/paneq/pg_playground/blob/main/example1.sql)
 
 # Credits

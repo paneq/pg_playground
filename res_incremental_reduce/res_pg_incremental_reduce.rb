@@ -67,7 +67,7 @@ class CreateFunction < ActiveRecord::Migration[8.0]
          IF e.event_type = 'UserRegistered' THEN
              INSERT INTO users (id, status) VALUES (user_id, 'registered');
          ELSIF e.event_type = 'UserUnregistered' THEN
-             UPDATE users SET status = 'regequit' WHERE id = user_id;
+             UPDATE users SET status = 'unregistered' WHERE id = user_id;
          ELSE
              RAISE NOTICE 'Unexpected event type: %', e.event_type;
          END IF;
