@@ -1,6 +1,6 @@
 # About this example
 
-This [example](https://github.com/paneq/pg_playground/blob/main/res_incremental/res_pg_incremental.rb) 
+This [example](https://github.com/paneq/pg_playground/blob/main/res_incremental_reduce/res_pg_incremental_reduce.rb) 
 demonstrates how [pg_incremental](https://github.com/CrunchyData/pg_incremental) extension can
 be used for processing domain events' data
 coming from [Rails Event Store](https://railseventstore.org/)
